@@ -7,6 +7,8 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import MemoryStore from "memorystore";
+import dotenv from "dotenv";
+dotenv.config();
 
 declare global {
   namespace Express {
@@ -32,7 +34,7 @@ async function comparePasswords(supplied: string, stored: string) {
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.REPL_ID!,
+    secret: process.env.SESSION_SECRET || "default_secret", // Исправлено: используем SESSION_SECRET
     resave: false,
     saveUninitialized: false,
     store: new MemoryStoreSession({
@@ -79,7 +81,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Middleware для проверки аутентификации
   const requireAuth = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Требуется авторизация" });
@@ -87,7 +88,6 @@ export function setupAuth(app: Express) {
     next();
   };
 
-  // API маршруты для аутентификации
   app.post("/api/register", async (req, res, next) => {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
